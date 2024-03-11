@@ -2,8 +2,11 @@ import { defineStore } from "pinia";
 import { nextTick, ref } from "vue";
 import Api from '@/service/api.service';
 import { User, UserResponse } from "@/types/user/user";
+import { useCookies } from "vue3-cookies";
+import apiService from "@/service/api.service";
 
 const AUTH_TOKEN = 'auth-token';
+const AUTH_COOKIE_TOKEN = 'accessToken';
 
 export const useAuthStore = defineStore('auth', () => {
     const user = ref<User | null>(null);
@@ -14,16 +17,8 @@ export const useAuthStore = defineStore('auth', () => {
         if (initStatus.value) {
             return;
         }
-
-        // get token, if none, return
-        const token = getToken();
-
-        if (!token) {
-            initStatus.value = true;
-            return;
-        }
         // send /me to see if token is alive and get user object
-        const me = await getMe()
+        const me = await getMe();
         if (!me) {
             removeToken();
         }
@@ -36,7 +31,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     async function getMe(): Promise<User | null> {
         try {
-            return (await Api({ requiresAuth: true }).get<UserResponse>('/auth/me', {
+            return (await Api().get<UserResponse>('/auth/me', {
             })).data as User;
         } catch (e) {
             console.error(e)
@@ -53,9 +48,8 @@ export const useAuthStore = defineStore('auth', () => {
         };
 
         try {
-            const res = await Api().post<UserResponse|ErrorResponse>('/auth/login', body);
+            const res = await Api().post<UserResponse | ErrorResponse>('/auth/login', body);
             user.value = res.data as UserResponse
-            setToken(res.headers['x-token']);
             return true;
         } catch (e) {
             alert((e as any).response.data.message);
@@ -75,7 +69,7 @@ export const useAuthStore = defineStore('auth', () => {
         };
 
         try {
-            const res = await Api().post<UserResponse|ErrorResponse>('/auth/register', body);
+            const res = await Api().post<UserResponse | ErrorResponse>('/auth/register', body);
             alert('User registered')
             return true;
         } catch (e) {
@@ -115,13 +109,22 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     async function logout() {
-        user.value = null;
-        removeToken();
-        // for some reason this breaks the router if push to next page on the same tick
-        nextTick(() => {
-            //@ts-ignore
-            this.router.push('/login')
-        });
+
+        try {
+            // session token cookie is set to be httpOnly, JS cannot update or remove the cookie
+            // logout api will set the token to be empty = logged out
+            await Api().post('/auth/logout');
+            user.value = null;
+            // for some reason this breaks the router if push to next page on the same tick
+            nextTick(() => {
+                //@ts-ignore
+                this.router.push('/login');
+            });
+        } catch (e) {
+            console.error(e);
+            alert('logout failed');
+        }
+
     }
 
 

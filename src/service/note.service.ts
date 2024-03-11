@@ -26,18 +26,19 @@ export const NoteService = {
         }
 
         try {
-            const res = await apiService({ requiresAuth: true }).get('/notes', {
+            const res = await apiService().get('/notes', {
                 params: queryParams
             });
             return res.data;
         } catch (e) {
             console.error(e);
+            alert(e);
         }
     },
 
     async createNote(title: string, content: string){
         try {
-            const res = await apiService({ requiresAuth: true }).post<Note>('/notes', {
+            const res = await apiService().post<Note>('/notes', {
                 title,
                 content
             });
@@ -45,12 +46,13 @@ export const NoteService = {
             return res;
         } catch (e) {
             console.error(e);
+            alert(e);
         }
     },
 
     async updateNote(id: number, title: string, content: string){
         try {
-            const res = await apiService({ requiresAuth: true }).put<Note>(`/notes/${id}`, {
+            const res = await apiService().put<Note>(`/notes/${id}`, {
                 title,
                 content
             });
@@ -58,16 +60,18 @@ export const NoteService = {
             return res;
         } catch (e) {
             console.error(e);
+            alert(e);
         }
     },
     
     async deleteNote(id: number){
         try {
-            const res = await apiService({ requiresAuth: true }).delete<{message: string}>(`/notes/${id}`);
+            const res = await apiService().delete<{message: string}>(`/notes/${id}`);
             alert(res.data.message)
             return res;
         } catch (e) {
             console.error(e);
+            alert(e);
         }
     }
 };
